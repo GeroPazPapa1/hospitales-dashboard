@@ -1,0 +1,138 @@
+import type { CasoUnico, MesCasos, RegistroHospitalDia, SheetData } from "./types";
+import { inRange } from "./dates";
+
+export interface Filtro {
+  desde?: string | null; // yyyy-MM-dd (input date HTML)
+  hasta?: string | null;
+  hospital?: string | null;
+}
+
+function toDate(s?: string | null): Date | null {
+  if (!s) return null;
+  const d = new Date(s + "T00:00:00");
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+export function filtrarRegistros(registros: RegistroHospitalDia[], f: Filtro): RegistroHospitalDia[] {
+  const desde = toDate(f.desde);
+  const hasta = toDate(f.hasta);
+  return registros.filter((r) => {
+    if (f.hospital && r.hospital !== f.hospital) return false;
+    return inRange(r.fecha, desde, hasta);
+  });
+}
+
+function sumBy<T>(items: T[], group: (i: T) => string, value: (i: T) => number): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const item of items) {
+    const k = group(item);
+    out[k] = (out[k] || 0) + value(item);
+  }
+  return out;
+}
+
+export function dnisUnicosPorMes(casosUnicos: CasoUnico[]) {
+  const porMes: Record<MesCasos, { total: number; conDni: number }> = {
+    AGO: { total: 0, conDni: 0 },
+    JUL: { total: 0, conDni: 0 },
+  };
+  for (const c of casosUnicos) {
+    porMes[c.mes].total += 1;
+    if (c.dni) porMes[c.mes].conDni += 1;
+  }
+  return porMes;
+}
+
+export function intervencionesPorHospital(registros: RegistroHospitalDia[]) {
+  return sumBy(registros, (r) => r.hospital, (r) => r.qPscContactadas);
+}
+
+export function ingresosCisPorHospital(registros: RegistroHospitalDia[]) {
+  return sumBy(registros, (r) => r.hospital, (r) => r.qIngresosCis);
+}
+
+export function egresosPorHospital(registros: RegistroHospitalDia[]) {
+  return sumBy(registros, (r) => r.hospital, (r) => r.qEgresos);
+}
+
+/**
+ * Los egresos casi no se mencionan en la planilla diaria por hospital: viven,
+ * en la práctica, en el texto de "Ingresos a CIS/DiPA" de Casos Únicos. Por
+ * eso el conteo "real" de egresos por hospital sale de ahí, no de la planilla diaria.
+ */
+export function egresosPorHospitalDesdeCasosUnicos(casosUnicos: CasoUnico[]) {
+  const out: Record<string, number> = {};
+  for (const c of casosUnicos) {
+    if (!c.esEgreso) continue;
+    out[c.hospital] = (out[c.hospital] || 0) + 1;
+  }
+  return out;
+}
+
+export function rechazosPorHospital(registros: RegistroHospitalDia[]) {
+  return sumBy(registros, (r) => r.hospital, (r) => r.qRechazaIntervencion);
+}
+
+export function rechazosPorDia(registros: RegistroHospitalDia[]) {
+  // agrupa por fecha (sumando todos los hospitales), ordenado cronológicamente
+  const porFecha = sumBy(registros, (r) => r.fecha ?? "Sin fecha", (r) => r.qRechazaIntervencion);
+  return Object.entries(porFecha)
+    .map(([fecha, total]) => ({ fecha, total }))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+export function totales(registros: RegistroHospitalDia[]) {
+  return registros.reduce(
+    (acc, r) => {
+      acc.intervenciones += r.qPscContactadas;
+      acc.casosNuevos += r.qCasosNuevos;
+      acc.ingresosCis += r.qIngresosCis;
+      acc.egresos += r.qEgresos;
+      acc.rechazos += r.qRechazaIntervencion;
+      acc.sinVacante += r.qSinVacante;
+      acc.aceptaEntrevistaRechazaRecursos += r.qAceptaEntrevistaRechazaRecursos;
+      return acc;
+    },
+    {
+      intervenciones: 0,
+      casosNuevos: 0,
+      ingresosCis: 0,
+      egresos: 0,
+      rechazos: 0,
+      sinVacante: 0,
+      aceptaEntrevistaRechazaRecursos: 0,
+    }
+  );
+}
+
+export function casosSaludMentalPorMes(casosUnicos: CasoUnico[]) {
+  const out: Record<MesCasos, number> = { AGO: 0, JUL: 0 };
+  for (const c of casosUnicos) if (c.esSaludMental) out[c.mes] += 1;
+  return out;
+}
+
+export function casosConIndicadorSmEnCalle(registros: RegistroHospitalDia[]) {
+  return registros.filter((r) => !!r.casosSmTexto);
+}
+
+export function filtrarCasosUnicos(casosUnicos: CasoUnico[], mes?: MesCasos | null, hospital?: string | null) {
+  return casosUnicos.filter((c) => (mes ? c.mes === mes : true) && (hospital ? c.hospital === hospital : true));
+}
+
+export function buildOverview(data: SheetData) {
+  const dnis = dnisUnicosPorMes(data.casosUnicos);
+  const t = totales(data.registrosHospitales);
+  const sm = casosSaludMentalPorMes(data.casosUnicos);
+  const egresos = data.casosUnicos.filter((c) => c.esEgreso).length;
+  return {
+    dnisUnicosAgo: dnis.AGO.total,
+    dnisUnicosJul: dnis.JUL.total,
+    intervenciones: t.intervenciones,
+    ingresosCis: t.ingresosCis,
+    egresos,
+    rechazos: t.rechazos,
+    casosSaludMentalAgo: sm.AGO,
+    casosSaludMentalJul: sm.JUL,
+    fetchedAt: data.fetchedAt,
+  };
+}
