@@ -4,6 +4,8 @@ import { KpiCard } from "@/components/KpiCard";
 import { HOSPITAL_ORDER } from "@/lib/colors";
 import type { MesCasos } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function PersonasPage({
   searchParams,
 }: {

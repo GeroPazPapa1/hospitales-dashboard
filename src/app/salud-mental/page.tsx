@@ -2,6 +2,8 @@ import { getSheetData } from "@/lib/sheets";
 import { casosConIndicadorSmEnCalle, casosSaludMentalPorMes } from "@/lib/metrics";
 import { KpiCard } from "@/components/KpiCard";
 
+export const dynamic = "force-dynamic";
+
 export default async function SaludMentalPage() {
   const data = await getSheetData();
   const porMes = casosSaludMentalPorMes(data.casosUnicos);

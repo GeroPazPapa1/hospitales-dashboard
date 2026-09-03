@@ -1,13 +1,27 @@
-import { revalidatePath } from "next/cache";
-import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { NextResponse, type NextRequest } from "next/server";
+import { SHEET_CACHE_TAG } from "@/lib/sheets";
 
-// Refresco manual: pega este endpoint (GET o POST) para forzar una relectura
-// del Google Sheet antes de que se cumpla la hora de auto-revalidación.
-export async function GET() {
-  revalidatePath("/", "layout");
+export const dynamic = "force-dynamic";
+
+// Fuerza una relectura del Google Sheet antes de que se cumpla el día de
+// auto-revalidación. Lo llama el cron diario de Vercel (ver vercel.json) y
+// también se puede abrir a mano en el navegador.
+function handle(req: NextRequest) {
+  // Si CRON_SECRET está definido, exigimos el header que manda Vercel Cron.
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+    return NextResponse.json({ ok: false, error: "no autorizado" }, { status: 401 });
+  }
+
+  revalidateTag(SHEET_CACHE_TAG, { expire: 0 });
   return NextResponse.json({ ok: true, revalidatedAt: new Date().toISOString() });
 }
 
-export async function POST() {
-  return GET();
+export async function GET(req: NextRequest) {
+  return handle(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handle(req);
 }

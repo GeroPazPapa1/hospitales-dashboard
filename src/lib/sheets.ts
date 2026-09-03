@@ -1,6 +1,12 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { google } from "googleapis";
 import type { CasoUnico, MesCasos, RegistroHospitalDia, SheetData } from "./types";
+
+/** Segundos que se conserva la lectura del Sheet antes de volver a pedirla (1 día). */
+const UN_DIA = 60 * 60 * 24;
+/** Tag para forzar una relectura manual desde /api/refresh. */
+export const SHEET_CACHE_TAG = "sheet-data";
 
 const HOSPITAL_TABS = ["ARGERICH", "RAMOS MEJÍA", "DURAND", "PIROVANO"] as const;
 const CASOS_UNICOS_TABS: { tab: string; mes: MesCasos }[] = [
@@ -212,7 +218,7 @@ function parseHospitalTab(rawRows: string[][], hospital: string): RegistroHospit
   return out;
 }
 
-export async function getSheetData(): Promise<SheetData> {
+async function fetchSheetData(): Promise<SheetData> {
   const [casosUnicosResults, hospitalResults] = await Promise.all([
     Promise.all(CASOS_UNICOS_TABS.map(async ({ tab, mes }) => parseCasosUnicos(await fetchTab(tab), mes))),
     Promise.all(HOSPITAL_TABS.map(async (h) => parseHospitalTab(await fetchTab(h), h))),
@@ -224,5 +230,15 @@ export async function getSheetData(): Promise<SheetData> {
     fetchedAt: new Date().toISOString(),
   };
 }
+
+/**
+ * Lectura del Google Sheet cacheada 1 día. La primera visita de cada día
+ * (o un llamado a /api/refresh) dispara la relectura; el resto se sirve de cache.
+ * El cache de Next persiste entre requests y entre deploys en Vercel.
+ */
+export const getSheetData = unstable_cache(fetchSheetData, ["sheet-data"], {
+  revalidate: UN_DIA,
+  tags: [SHEET_CACHE_TAG],
+});
 
 export const HOSPITALES = HOSPITAL_TABS;

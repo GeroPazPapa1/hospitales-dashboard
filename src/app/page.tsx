@@ -10,7 +10,9 @@ import { KpiCard } from "@/components/KpiCard";
 import { CategoryBarChart } from "@/components/CategoryBarChart";
 import { HOSPITAL_ORDER } from "@/lib/colors";
 
-export const revalidate = 3600; // refresca solo desde el Sheet cada 1 hora (la planilla se actualiza cada 2 días)
+// Se renderiza por request (no en el build), así una caída puntual del Sheet
+// nunca rompe el deploy. La lectura del Sheet en sí está cacheada 1 día en lib/sheets.ts.
+export const dynamic = "force-dynamic";
 
 function toChartData(record: Record<string, number>): { name: string; value: number }[] {
   const conocidos: { name: string; value: number }[] = HOSPITAL_ORDER.filter((h) => h in record).map((h) => ({
