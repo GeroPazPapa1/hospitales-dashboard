@@ -18,6 +18,8 @@ export interface CasoUnico {
   evaluacionCis: string | null;
   estrategia: string | null;
   esSaludMental: boolean;
+  /** Estrategia = "Pérdida de paradero": no se pudo volver a contactar a la persona. Se excluye del conteo de "casos únicos" real. */
+  perdidaDeParadero: boolean;
   criticidad: string | null;
   nivelCronicidad: string | null;
   qIntervenciones: { value: number | null; exact: boolean; raw: string | null };

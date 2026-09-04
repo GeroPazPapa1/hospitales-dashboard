@@ -44,9 +44,35 @@ export default async function OverviewPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <KpiCard label="DNIs únicos agosto" value={ov.dnisUnicosAgo} sublabel="Casos Únicos AGO" />
-        <KpiCard label="DNIs únicos julio" value={ov.dnisUnicosJul} sublabel="Casos Únicos JUL" />
+      <div>
+        <h2 className="mb-2 text-sm font-medium" style={{ color: "var(--ink-secondary)" }}>
+          Casos únicos — mismo criterio que el reporte semanal a Ministerio
+        </h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <KpiCard
+            label="Detectados (Jul + Ago)"
+            value={ov.casosUnicosTotal.detectados}
+            sublabel="Personas contactadas, incluye pérdida de paradero"
+          />
+          <KpiCard
+            label="Pérdida de paradero"
+            value={ov.casosUnicosTotal.perdidaDeParadero}
+            sublabel="No se las pudo volver a contactar"
+          />
+          <KpiCard
+            label="Casos únicos julio"
+            value={ov.casosUnicos.JUL.reales}
+            sublabel={`${ov.casosUnicos.JUL.detectados} detectados − ${ov.casosUnicos.JUL.perdidaDeParadero} pérdida de paradero`}
+          />
+          <KpiCard
+            label="Casos únicos agosto"
+            value={ov.casosUnicos.AGO.reales}
+            sublabel={`${ov.casosUnicos.AGO.detectados} detectados − ${ov.casosUnicos.AGO.perdidaDeParadero} pérdida de paradero`}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <KpiCard label="Intervenciones" value={ov.intervenciones} sublabel="Planilla diaria, todos los hospitales" />
         <KpiCard label="Ingresos a CIS" value={ov.ingresosCis} sublabel="Planilla diaria" />
         <KpiCard label="Egresos de CIS" value={ov.egresos} sublabel="Casos Únicos, detectado por texto 'egreso'" />

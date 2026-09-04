@@ -162,6 +162,7 @@ function parseCasosUnicos(rawRows: string[][], mes: MesCasos): CasoUnico[] {
       evaluacionCis: cell(row, idx.evalCis),
       estrategia,
       esSaludMental: !!estrategia && /DGSAM/i.test(estrategia),
+      perdidaDeParadero: !!estrategia && /parader/i.test(estrategia),
       criticidad: cell(row, idx.criticidad),
       nivelCronicidad: cell(row, idx.cronicidad),
       qIntervenciones: parseIntervencionesRaw(cell(row, idx.qIntervenciones)),

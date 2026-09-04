@@ -54,10 +54,15 @@ export default async function PersonasPage({
         <a href="/personas" className="text-sm underline" style={{ color: "var(--ink-secondary)" }}>Limpiar</a>
       </form>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <KpiCard label="Personas" value={casos.length} />
         <KpiCard label="Intervenciones (suma)" value={totalIntervenciones} sublabel={sinDato ? `${sinDato} sin dato de Q Intervenciones` : undefined} />
         <KpiCard label="En situación de calle" value={casos.filter((c) => c.enSituacionDeCalle).length} />
+        <KpiCard
+          label="Pérdida de paradero"
+          value={casos.filter((c) => c.perdidaDeParadero).length}
+          sublabel="No se las pudo volver a contactar"
+        />
       </div>
 
       <div className="rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
@@ -78,7 +83,12 @@ export default async function PersonasPage({
             </thead>
             <tbody>
               {casos.map((c, i) => (
-                <tr key={i} className="border-t" style={{ borderColor: "var(--gridline)" }}>
+                <tr
+                  key={i}
+                  className="border-t"
+                  style={{ borderColor: "var(--gridline)", opacity: c.perdidaDeParadero ? 0.55 : 1 }}
+                  title={c.perdidaDeParadero ? "Pérdida de paradero: no cuenta como caso único real" : undefined}
+                >
                   <td className="py-2 pr-3">{c.mes}</td>
                   <td className="py-2 pr-3 whitespace-nowrap">{c.hospital}</td>
                   <td className="py-2 pr-3 whitespace-nowrap">{c.nombre}</td>

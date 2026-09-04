@@ -43,6 +43,36 @@ export function dnisUnicosPorMes(casosUnicos: CasoUnico[]) {
   return porMes;
 }
 
+export interface ResumenCasosUnicos {
+  /** Filas en Casos Únicos (personas distintas contactadas), incluye pérdida de paradero. */
+  detectados: number;
+  /** De esas, a cuántas no se las pudo volver a contactar (Estrategia = "Pérdida de paradero"). */
+  perdidaDeParadero: number;
+  /** detectados - perdidaDeParadero: el número que se reporta como "casos únicos". */
+  reales: number;
+}
+
+function resumen(casos: CasoUnico[]): ResumenCasosUnicos {
+  const detectados = casos.length;
+  const perdidaDeParadero = casos.filter((c) => c.perdidaDeParadero).length;
+  return { detectados, perdidaDeParadero, reales: detectados - perdidaDeParadero };
+}
+
+/**
+ * Reproduce el criterio del reporte semanal a Ministerio: "casos únicos" excluye
+ * las personas con pérdida de paradero (no se las pudo volver a contactar).
+ */
+export function resumenCasosUnicosPorMes(casosUnicos: CasoUnico[]): Record<MesCasos, ResumenCasosUnicos> {
+  return {
+    AGO: resumen(casosUnicos.filter((c) => c.mes === "AGO")),
+    JUL: resumen(casosUnicos.filter((c) => c.mes === "JUL")),
+  };
+}
+
+export function resumenCasosUnicosTotal(casosUnicos: CasoUnico[]): ResumenCasosUnicos {
+  return resumen(casosUnicos);
+}
+
 export function intervencionesPorHospital(registros: RegistroHospitalDia[]) {
   return sumBy(registros, (r) => r.hospital, (r) => r.qPscContactadas);
 }
@@ -120,13 +150,14 @@ export function filtrarCasosUnicos(casosUnicos: CasoUnico[], mes?: MesCasos | nu
 }
 
 export function buildOverview(data: SheetData) {
-  const dnis = dnisUnicosPorMes(data.casosUnicos);
   const t = totales(data.registrosHospitales);
   const sm = casosSaludMentalPorMes(data.casosUnicos);
   const egresos = data.casosUnicos.filter((c) => c.esEgreso).length;
+  const casosUnicos = resumenCasosUnicosPorMes(data.casosUnicos);
+  const casosUnicosTotal = resumenCasosUnicosTotal(data.casosUnicos);
   return {
-    dnisUnicosAgo: dnis.AGO.total,
-    dnisUnicosJul: dnis.JUL.total,
+    casosUnicos,
+    casosUnicosTotal,
     intervenciones: t.intervenciones,
     ingresosCis: t.ingresosCis,
     egresos,
