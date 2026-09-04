@@ -16,16 +16,30 @@ export default async function SaludMentalPage() {
         <h1 className="text-xl font-semibold">Casos de salud mental</h1>
         <p className="mt-1 max-w-3xl text-sm" style={{ color: "var(--ink-secondary)" }}>
           Casos ya derivados formalmente: filas de Casos Únicos donde la columna <b>Estrategia</b> es
-          &quot;ASIC - DGSAM&quot; (DGSAM = Dirección Gral. de Salud Mental). Abajo también se listan los
-          &quot;indicios&quot; de salud mental detectados en calle por los equipos (columna &quot;Casos SM&quot; de
+          &quot;ASIC - DGSAM&quot; (DGSAM = Dirección Gral. de Salud Mental). Abajo también se listan
+          &quot;indicadores&quot; de salud mental detectados en calle por los equipos (columna &quot;Casos SM&quot; de
           la planilla diaria), que todavía pueden no estar formalmente derivados.
+        </p>
+        <p
+          className="mt-2 max-w-3xl rounded-md border px-3 py-2 text-xs"
+          style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--ink-secondary)" }}
+        >
+          ⚠️ Estos dos números <b>no se pueden cruzar automáticamente</b>: la planilla diaria no registra DNI, así
+          que no hay forma de saber si un &quot;indicador en calle&quot; es una persona que ya figura en la tabla de
+          derivados o no. Nunca los sumes como si fueran casos distintos — pueden repetirse. Si en Casos Únicos se
+          agrega una columna que marque &quot;ya derivado a DGSAM: sí/no&quot;, este dashboard puede separar
+          &quot;casos nuevos para derivar&quot; de los ya en seguimiento.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <KpiCard label="Salud mental — agosto" value={porMes.AGO} sublabel="Casos Únicos AGO, Estrategia=DGSAM" />
         <KpiCard label="Salud mental — julio" value={porMes.JUL} sublabel="Casos Únicos JUL, Estrategia=DGSAM" />
-        <KpiCard label="Indicios detectados en calle" value={indiciosEnCalle.length} sublabel="Turnos con texto en 'Casos SM'" />
+        <KpiCard
+          label="Indicadores en calle"
+          value={indiciosEnCalle.length}
+          sublabel="Turnos con texto en 'Casos SM' — no confirmados como derivación"
+        />
       </div>
 
       <div className="rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
@@ -64,7 +78,7 @@ export default async function SaludMentalPage() {
       </div>
 
       <div className="rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-        <h2 className="p-4 pb-0 text-sm font-medium">Indicios detectados en calle (planilla diaria)</h2>
+        <h2 className="p-4 pb-0 text-sm font-medium">Indicadores en calle (planilla diaria)</h2>
         <div className="overflow-x-auto p-4">
           <table className="w-full min-w-[800px] text-left text-sm">
             <thead>

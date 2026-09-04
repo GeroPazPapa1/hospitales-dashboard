@@ -1,5 +1,5 @@
 import { getSheetData } from "@/lib/sheets";
-import { filtrarCasosUnicos } from "@/lib/metrics";
+import { filtrarCasosUnicos, mencionesEnPlanillaDiaria } from "@/lib/metrics";
 import { KpiCard } from "@/components/KpiCard";
 import { HOSPITAL_ORDER } from "@/lib/colors";
 import type { MesCasos } from "@/lib/types";
@@ -20,6 +20,7 @@ export default async function PersonasPage({
 
   const totalIntervenciones = casos.reduce((acc, c) => acc + (c.qIntervenciones.value ?? 0), 0);
   const sinDato = casos.filter((c) => c.qIntervenciones.value === null).length;
+  const menciones = new Map(casos.map((c) => [c, mencionesEnPlanillaDiaria(c, data.registrosHospitales)]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -27,6 +28,12 @@ export default async function PersonasPage({
         <h1 className="text-xl font-semibold">Casos únicos — intervenciones por persona</h1>
         <p className="mt-1 text-sm" style={{ color: "var(--ink-secondary)" }}>
           Una fila por persona (DNI único), tomado de las pestañas &quot;Casos Únicos AGO/JUL&quot;.
+        </p>
+        <p className="mt-1 text-xs" style={{ color: "var(--ink-muted)" }}>
+          &quot;Q Intervenciones&quot; es la columna cargada a mano en Casos Únicos. &quot;Menciones en planilla
+          diaria&quot; es una estimación aparte: cuenta en cuántos turnos de la planilla diaria del mismo hospital
+          aparece el nombre de la persona en el texto libre — sirve para chequear la columna manual, no la reemplaza
+          (puede fallar con nombres muy comunes o apodos).
         </p>
       </div>
 
@@ -67,7 +74,7 @@ export default async function PersonasPage({
 
       <div className="rounded-xl border" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
         <div className="overflow-x-auto p-4">
-          <table className="w-full min-w-[1000px] text-left text-sm">
+          <table className="w-full min-w-[1300px] text-left text-sm">
             <thead>
               <tr style={{ color: "var(--ink-muted)" }}>
                 <th className="py-2 pr-3 font-medium">Mes</th>
@@ -75,9 +82,11 @@ export default async function PersonasPage({
                 <th className="py-2 pr-3 font-medium">Nombre</th>
                 <th className="py-2 pr-3 font-medium">DNI</th>
                 <th className="py-2 pr-3 font-medium">Edad</th>
+                <th className="py-2 pr-3 font-medium">Sit. de calle</th>
                 <th className="py-2 pr-3 font-medium">Estrategia</th>
                 <th className="py-2 pr-3 font-medium">Criticidad</th>
                 <th className="py-2 pr-3 font-medium">Q Intervenciones</th>
+                <th className="py-2 pr-3 font-medium">Menciones en planilla (aprox.)</th>
                 <th className="py-2 pr-3 font-medium">Egreso CIS</th>
               </tr>
             </thead>
@@ -94,6 +103,9 @@ export default async function PersonasPage({
                   <td className="py-2 pr-3 whitespace-nowrap">{c.nombre}</td>
                   <td className="py-2 pr-3 whitespace-nowrap tabular-nums">{c.dni ?? "—"}</td>
                   <td className="py-2 pr-3 tabular-nums">{c.edad ?? "—"}</td>
+                  <td className="py-2 pr-3">
+                    {c.enSituacionDeCalle === null ? "—" : c.enSituacionDeCalle ? "Sí" : "No"}
+                  </td>
                   <td className="py-2 pr-3 whitespace-nowrap">{c.estrategia ?? "—"}</td>
                   <td className="py-2 pr-3 whitespace-nowrap">{c.criticidad ?? "—"}</td>
                   <td className="py-2 pr-3 tabular-nums">
@@ -103,12 +115,15 @@ export default async function PersonasPage({
                       ? c.qIntervenciones.value
                       : `${c.qIntervenciones.value}+`}
                   </td>
+                  <td className="py-2 pr-3 tabular-nums" style={{ color: "var(--ink-secondary)" }}>
+                    {menciones.get(c)}
+                  </td>
                   <td className="py-2 pr-3">{c.esEgreso ? "Sí" : "No"}</td>
                 </tr>
               ))}
               {casos.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-6 text-center" style={{ color: "var(--ink-muted)" }}>
+                  <td colSpan={11} className="py-6 text-center" style={{ color: "var(--ink-muted)" }}>
                     Sin resultados para este filtro.
                   </td>
                 </tr>

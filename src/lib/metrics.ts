@@ -103,6 +103,16 @@ export function rechazosPorHospital(registros: RegistroHospitalDia[]) {
   return sumBy(registros, (r) => r.hospital, (r) => r.qRechazaIntervencion);
 }
 
+/** Cantidad de turnos (filas) cargados por hospital — para contextualizar sumas que dependen de cuánto se registró. */
+export function turnosPorHospital(registros: RegistroHospitalDia[]) {
+  return sumBy(registros, (r) => r.hospital, () => 1);
+}
+
+/** Turnos donde se registró al menos 1 rechazo (a diferencia de la suma de eventos, no cuenta 2 veces un turno con "3 rechazan"). */
+export function turnosConRechazo(registros: RegistroHospitalDia[]) {
+  return registros.filter((r) => r.qRechazaIntervencion > 0).length;
+}
+
 export function rechazosPorDia(registros: RegistroHospitalDia[]) {
   // agrupa por fecha (sumando todos los hospitales), ordenado cronológicamente
   const porFecha = sumBy(registros, (r) => r.fecha ?? "Sin fecha", (r) => r.qRechazaIntervencion);
@@ -147,6 +157,41 @@ export function casosConIndicadorSmEnCalle(registros: RegistroHospitalDia[]) {
 
 export function filtrarCasosUnicos(casosUnicos: CasoUnico[], mes?: MesCasos | null, hospital?: string | null) {
   return casosUnicos.filter((c) => (mes ? c.mes === mes : true) && (hospital ? c.hospital === hospital : true));
+}
+
+const STOPWORDS = new Set(["para", "desde", "hasta", "tiene", "sobre", "sin", "esta", "este"]);
+
+function sinAcentos(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+/** Palabras "identificatorias" del nombre (>=4 letras, sin stopwords) para buscarlas en texto libre. */
+function tokensDeNombre(nombre: string): string[] {
+  return sinAcentos(nombre)
+    .split(/[^a-z]+/)
+    .filter((t) => t.length >= 4 && !STOPWORDS.has(t));
+}
+
+/**
+ * Cuántos turnos de la planilla diaria (mismo hospital) mencionan el nombre de esta
+ * persona en algún campo de texto libre (detalle de casos nuevos, ingresos a CIS,
+ * observaciones, casos SM). Es una estimación por texto, no un cruce por DNI —
+ * sirve para chequear la columna "Q Intervenciones" cargada a mano, no para reemplazarla.
+ */
+export function mencionesEnPlanillaDiaria(caso: CasoUnico, registros: RegistroHospitalDia[]): number {
+  const tokens = tokensDeNombre(caso.nombre);
+  if (tokens.length === 0) return 0;
+  const regexes = tokens.map((t) => new RegExp(`\\b${t}\\b`));
+
+  let count = 0;
+  for (const r of registros) {
+    if (r.hospital !== caso.hospital) continue;
+    const texto = sinAcentos(
+      [r.detalleCasosNuevos, r.detalleIngresosCis, r.observacionesGenerales, r.casosSmTexto].filter(Boolean).join(" ")
+    );
+    if (texto && regexes.some((re) => re.test(texto))) count++;
+  }
+  return count;
 }
 
 export function buildOverview(data: SheetData) {

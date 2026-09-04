@@ -1,5 +1,5 @@
 import { getSheetData } from "@/lib/sheets";
-import { filtrarRegistros, rechazosPorDia, totales } from "@/lib/metrics";
+import { filtrarRegistros, rechazosPorDia, totales, turnosConRechazo } from "@/lib/metrics";
 import { KpiCard } from "@/components/KpiCard";
 import { TimeSeriesBarChart } from "@/components/TimeSeriesBarChart";
 import { FiltersForm } from "@/components/FiltersForm";
@@ -17,6 +17,7 @@ export default async function RechazosPage({
   const filtrados = filtrarRegistros(data.registrosHospitales, sp);
   const t = totales(filtrados);
   const serie = rechazosPorDia(filtrados);
+  const conRechazo = turnosConRechazo(filtrados);
 
   const conRechazoOAlgunDato = filtrados.filter(
     (r) => r.qRechazaIntervencion > 0 || r.qAceptaEntrevistaRechazaRecursos > 0
@@ -37,15 +38,35 @@ export default async function RechazosPage({
 
       <FiltersForm action="/rechazos" desde={sp.desde} hasta={sp.hasta} hospital={sp.hospital} hospitales={HOSPITAL_ORDER} />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard label="Rechazan intervención" value={t.rechazos} />
-        <KpiCard label="Acepta entrevista, rechaza recursos" value={t.aceptaEntrevistaRechazaRecursos} />
-        <KpiCard label="Sin vacante disponible" value={t.sinVacante} />
-        <KpiCard label="Turnos en el rango" value={filtrados.length} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <KpiCard
+          label="Rechazos (eventos por turno)"
+          value={t.rechazos}
+          sublabel="Suma de 'Q Rechaza intervención'. No son personas únicas."
+        />
+        <KpiCard label="Turnos con ≥1 rechazo" value={conRechazo} sublabel="Cantidad de turnos distintos con algún rechazo" />
+        <KpiCard
+          label="Acepta entrevista, rechaza recursos"
+          value={t.aceptaEntrevistaRechazaRecursos}
+          sublabel="Eventos por turno (columna cargada a mano), no personas únicas"
+        />
+        <KpiCard
+          label="Sin vacante disponible"
+          value={t.sinVacante}
+          sublabel="Eventos por turno (columna cargada a mano), no personas únicas"
+        />
+        <KpiCard
+          label="Turnos en el rango"
+          value={filtrados.length}
+          sublabel="Turnos de la planilla diaria dentro del filtro de fecha/hospital elegido"
+        />
       </div>
 
       <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
-        <h2 className="mb-2 text-sm font-medium">Rechazos por día</h2>
+        <h2 className="text-sm font-medium">Rechazos por día</h2>
+        <p className="mb-2 text-xs" style={{ color: "var(--ink-muted)" }}>
+          Suma de &quot;Q Rechaza intervención&quot; por turno, agrupada por día (todos los hospitales del filtro elegido).
+        </p>
         {serie.length > 0 ? (
           <TimeSeriesBarChart data={serie} />
         ) : (
